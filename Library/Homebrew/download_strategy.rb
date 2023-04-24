@@ -406,18 +406,27 @@ class CurlDownloadStrategy < AbstractFileDownloadStrategy
 
       ohai "Downloading #{url}"
 
-      resolved_url, _, url_time, _, is_redirection =
-        resolve_url_basename_time_file_size(url, timeout: end_time&.remaining!)
+      fresh =
+        if version.respond_to?(:latest?)
+          !version.latest?
+        else
+          true
+        end
+
+      resolved_url, _, last_modified, _, is_redirection =
+        begin
+          resolve_url_basename_time_file_size(url, timeout: end_time&.remaining!)
+        rescue ErrorDuringExecution
+          raise unless cached_location.exist? && fresh # rubocop:disable Style/UnlessLogicalOperators
+
+          [nil, nil, nil, nil, nil]
+        end
+
       # Authorization is no longer valid after redirects
       meta[:headers]&.delete_if { |header| header.start_with?("Authorization") } if is_redirection
 
-      fresh = if cached_location.exist? && url_time
-        url_time <= cached_location.mtime
-      elsif version.respond_to?(:latest?)
-        !version.latest?
-      else
-        true
-      end
+      # Cache is no longer fresh if Last-Modified postdates the file's timestamp
+      fresh = false if cached_location.exist? && last_modified && last_modified > cached_location.mtime
 
       if cached_location.exist? && fresh
         puts "Already downloaded: #{cached_location}"
