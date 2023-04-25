@@ -406,12 +406,11 @@ class CurlDownloadStrategy < AbstractFileDownloadStrategy
 
       ohai "Downloading #{url}"
 
-      fresh =
-        if version.respond_to?(:latest?)
-          !version.latest?
-        else
-          true
-        end
+      fresh = if version.respond_to?(:latest?)
+        !version.latest?
+      else
+        true
+      end
 
       resolved_url, _, last_modified, _, is_redirection =
         begin
