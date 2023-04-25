@@ -412,14 +412,11 @@ class CurlDownloadStrategy < AbstractFileDownloadStrategy
         true
       end
 
-      resolved_url, _, last_modified, _, is_redirection =
-        begin
-          resolve_url_basename_time_file_size(url, timeout: end_time&.remaining!)
-        rescue ErrorDuringExecution
-          raise unless cached_location.exist? && fresh # rubocop:disable Style/UnlessLogicalOperators
-
-          [nil, nil, nil, nil, nil]
-        end
+      resolved_url, _, last_modified, _, is_redirection = begin
+        resolve_url_basename_time_file_size(url, timeout: end_time&.remaining!)
+      rescue ErrorDuringExecution
+        raise if !cached_location.exist? || !fresh
+      end
 
       # Authorization is no longer valid after redirects
       meta[:headers]&.delete_if { |header| header.start_with?("Authorization") } if is_redirection
