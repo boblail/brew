@@ -425,7 +425,7 @@ class CurlDownloadStrategy < AbstractFileDownloadStrategy
       # Authorization is no longer valid after redirects
       meta[:headers]&.delete_if { |header| header.start_with?("Authorization") } if is_redirection
 
-      # Cache is no longer fresh if Last-Modified postdates the file's timestamp
+      # Cache is no longer fresh if Last-Modified is after the file's timestamp
       fresh = false if cached_location.exist? && last_modified && last_modified > cached_location.mtime
 
       if cached_location.exist? && fresh
